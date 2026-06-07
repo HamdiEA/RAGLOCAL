@@ -1,0 +1,173 @@
+﻿<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RAG Local</title>
+  <link rel="stylesheet" href="/static/css/style.css?v=2" />
+
+</head>
+<body>
+
+<aside id="sidebar">
+  <div class="sidebar-header">
+    <div class="logo">
+      <span class="logo-text logo-brand">RAG</span>
+      <span class="logo-sub">local</span>
+    </div>
+    <button class="btn-new-project" id="btnNewProject" title="Nouveau projet">+ Projet</button>
+  </div>
+
+  <div class="sidebar-section-label">PROJETS</div>
+  <ul id="projectList" class="project-list"></ul>
+
+  <div class="sidebar-footer">
+    <span class="status-dot" id="ollamaStatus" title="Ollama status"></span>
+    <span class="footer-model-name" id="footerModelName" title="LLM model"></span>
+    <button class="btn-settings-icon" id="btnSettings" title="Configuration">Paramètres</button>
+  </div>
+</aside>
+
+<main id="main">
+
+  <div id="emptyState" class="empty-state">
+    <div class="empty-icon">RAG</div>
+    <h2>RAG 100% local</h2>
+    <p>Crée un projet, dépose tes fichiers,<br/>pose tes questions - tout reste sur ta machine.</p>
+    <button class="btn-primary" id="btnNewProjectEmpty">Créer un projet</button>
+  </div>
+
+  <div id="projectView" class="project-view hidden">
+
+    <header class="project-header">
+      <div class="project-title-block">
+        <h1 id="currentProjectName"></h1>
+        <span id="currentProjectDesc" class="project-desc"></span>
+      </div>
+      <div class="header-actions">
+        <button class="btn-secondary" id="btnAddDocuments" title="Ajouter des documents">Ajouter des documents</button>
+        <button class="btn-icon" id="btnDeleteProject" title="Supprimer le projet">Supprimer</button>
+      </div>
+    </header>
+
+    <div class="tabs">
+      <button class="tab active" data-tab="chat">Discussion</button>
+      <button class="tab" data-tab="files">Fichiers</button>
+    </div>
+
+    <div id="tabChat" class="tab-content active">
+      <div class="index-banner" id="indexBanner">
+          <span>Index non à jour -</span>
+          <button class="btn-index" id="btnIndex">Indexer maintenant</button>
+      </div>
+
+      <div id="indexConsole" class="index-console hidden">
+        <div class="console-header">
+          <span>Console d'indexation</span>
+          <button class="console-close" id="btnCloseConsole">X</button>
+        </div>
+        <div id="consoleLogs" class="console-logs"></div>
+      </div>
+
+      <div id="chatMessages" class="chat-messages">
+        <div class="chat-welcome">
+          <p>Pose une question sur tes documents ou génère un rapport.</p>
+        </div>
+      </div>
+
+      <div class="chat-bar">
+        <div class="mode-toggle">
+          <button class="mode-btn active" data-mode="qa" title="Réponse directe">Q&R</button>
+          <button class="mode-btn" data-mode="report" title="Génère un rapport structuré">Rapport</button>
+        </div>
+        <textarea id="chatInput" placeholder="Ta question..." rows="1"></textarea>
+        <button class="btn-send" id="btnSend">Envoyer</button>
+      </div>
+    </div>
+
+    <div id="tabFiles" class="tab-content">
+      <div class="drop-zone" id="dropZone">
+        <div class="drop-icon">^</div>
+        <p>Glisse tes fichiers ici<br/><span class="drop-hint">PDF | TXT | MD</span></p>
+        <input type="file" id="fileInput" multiple accept=".pdf,.txt,.md" hidden />
+        <button class="btn-secondary" id="btnBrowse">Parcourir</button>
+      </div>
+
+      <div id="fileList" class="file-list"></div>
+
+      <div class="files-actions">
+        <button class="btn-primary" id="btnIndexFromFiles">Indexer les fichiers</button>
+        <span class="files-hint">Nécessaire après chaque ajout/suppression de fichier.</span>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<div id="modalOverlay" class="modal-overlay hidden">
+  <div class="modal">
+    <h3>Nouveau projet</h3>
+    <label>Nom du projet
+      <input type="text" id="inputProjectName" placeholder="ex : These_Master" />
+    </label>
+    <label>Description (optionnel)
+      <input type="text" id="inputProjectDesc" placeholder="Contexte du projet..." />
+    </label>
+    <div class="modal-actions">
+      <button class="btn-secondary" id="btnCancelProject">Annuler</button>
+      <button class="btn-primary" id="btnConfirmProject">Créer</button>
+    </div>
+  </div>
+</div>
+
+<div id="settingsOverlay" class="modal-overlay hidden">
+  <div class="modal settings-modal">
+    <div class="modal-title-row">
+      <h3>Configuration</h3>
+      <button class="btn-settings-refresh" id="btnRefreshModels" title="Rafraîchir la liste des modèles">Rafraîchir</button>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-section-title">Modèles</div>
+      <label>Modèle LLM
+        <input type="text" id="settingLlmModel" list="llmModelsList" autocomplete="off" placeholder="ex : llama3:latest" />
+        <datalist id="llmModelsList"></datalist>
+      </label>
+      <label>Modèle d'embedding
+        <input type="text" id="settingEmbedModel" list="embedModelsList" autocomplete="off" placeholder="ex : nomic-embed-text" />
+        <datalist id="embedModelsList"></datalist>
+      </label>
+      <span id="modelsStatus" class="models-status">-</span>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-section-title">Découpage</div>
+      <div class="settings-row">
+        <label>Taille des segments (caractères)
+          <input type="number" id="settingChunkSize" min="100" max="10000" step="50" />
+        </label>
+        <label>Chevauchement (caractères)
+          <input type="number" id="settingChunkOverlap" min="0" max="5000" step="25" />
+        </label>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-section-title">Recherche</div>
+      <label style="max-width:180px">Segments récupérés (k)
+        <input type="number" id="settingRetrievalK" min="1" max="30" step="1" />
+      </label>
+    </div>
+
+    <p class="settings-note">Modifier le modèle d'embedding ou les paramètres de découpage nécessite de réindexer les projets existants.</p>
+
+    <div class="modal-actions">
+      <button class="btn-secondary" id="btnCancelSettings">Annuler</button>
+      <button class="btn-primary" id="btnSaveSettings">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<script src="/static/js/app.js?v=3"></script>
+</body>
+</html>
